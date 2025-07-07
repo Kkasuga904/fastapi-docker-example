@@ -1,3 +1,7 @@
+![CI](https://github.com/Kkasuga904/fastapi-docker-example/actions/workflows/ci.yml/badge.svg)
+
+# FastAPI Docker Example
+
 ## ✅ Demo Output
 
 After running the container, you can confirm it's working with:
