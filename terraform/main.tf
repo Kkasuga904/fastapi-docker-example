@@ -1,4 +1,7 @@
-# AWS ECS Fargate deployment for FastAPI application
+# AWS ECS Fargate Terraform Configuration
+# Author: Kkasuga904
+# Description: Production-ready AWS infrastructure for FastAPI application
+# Features: ECS Fargate, ALB, Auto-scaling, CloudWatch monitoring
 
 terraform {
   required_providers {
@@ -13,18 +16,27 @@ provider "aws" {
   region = var.aws_region
 }
 
-# Variables
+# ===========================
+# Variables Configuration
+# ===========================
 variable "aws_region" {
-  default = "ap-northeast-1"
+  description = "AWS region for deployment"
+  default     = "ap-northeast-1"
 }
 
 variable "app_name" {
-  default = "fastapi-app"
+  description = "Application name"
+  default     = "fastapi-app"
 }
 
 variable "environment" {
-  default = "production"
+  description = "Environment name (production/staging/development)"
+  default     = "production"
 }
+
+# ===========================
+# Network Configuration
+# ===========================
 
 # VPC Configuration
 resource "aws_vpc" "main" {
@@ -113,7 +125,11 @@ resource "aws_security_group" "app" {
   }
 }
 
-# ECS Cluster
+# ===========================
+# ECS Configuration
+# ===========================
+
+# ECS Cluster with Container Insights enabled
 resource "aws_ecs_cluster" "main" {
   name = "${var.app_name}-cluster"
 
@@ -323,7 +339,11 @@ resource "aws_ecs_service" "app" {
   }
 }
 
-# Auto Scaling
+# ===========================
+# Auto Scaling Configuration
+# ===========================
+
+# Auto Scaling Target
 resource "aws_appautoscaling_target" "ecs_target" {
   max_capacity       = 10
   min_capacity       = 2
@@ -360,13 +380,28 @@ resource "aws_appautoscaling_policy" "memory_scaling" {
   }
 }
 
+# ===========================
 # Outputs
+# ===========================
+
 output "load_balancer_url" {
+  description = "URL of the Application Load Balancer"
   value = aws_lb.main.dns_name
 }
 
 output "ecr_repository_url" {
-  value = aws_ecr_repository.app.repository_url
+  description = "URL of the ECR repository for pushing Docker images"
+  value       = aws_ecr_repository.app.repository_url
+}
+
+output "ecs_cluster_name" {
+  description = "Name of the ECS cluster"
+  value       = aws_ecs_cluster.main.name
+}
+
+output "ecs_service_name" {
+  description = "Name of the ECS service"
+  value       = aws_ecs_service.app.name
 }
 
 data "aws_availability_zones" "available" {

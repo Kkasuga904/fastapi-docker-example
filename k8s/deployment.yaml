@@ -1,11 +1,15 @@
+# FastAPI Deployment Configuration
+# Author: Kkasuga904
+# Description: Production-ready Kubernetes deployment with HPA and health checks
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: fastapi-app
   labels:
     app: fastapi
+    version: "1.0.0"
 spec:
-  replicas: 3
+  replicas: 3  # 初期レプリカ数（HPA により自動スケール）
   selector:
     matchLabels:
       app: fastapi
@@ -13,39 +17,53 @@ spec:
     metadata:
       labels:
         app: fastapi
+        version: "1.0.0"
     spec:
       containers:
       - name: fastapi
         image: kkasuga904/fastapi-docker-example:latest
         ports:
         - containerPort: 8000
+          name: http
         resources:
+          # リソース制限（本番環境用）
           limits:
             cpu: "500m"
             memory: "256Mi"
           requests:
             cpu: "200m"
             memory: "128Mi"
+        # Kubernetesヘルスチェック
         livenessProbe:
           httpGet:
             path: /health
             port: 8000
           initialDelaySeconds: 30
           periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
         readinessProbe:
           httpGet:
             path: /health
             port: 8000
           initialDelaySeconds: 5
           periodSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
         env:
         - name: ENVIRONMENT
           value: "production"
+        - name: LOG_LEVEL
+          value: "INFO"
 ---
+# Service Configuration
+# LoadBalancer type for external access
 apiVersion: v1
 kind: Service
 metadata:
   name: fastapi-service
+  labels:
+    app: fastapi
 spec:
   selector:
     app: fastapi
@@ -54,7 +72,10 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 8000
+      name: http
 ---
+# Horizontal Pod Autoscaler Configuration
+# Auto-scaling based on CPU and Memory utilization
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -64,18 +85,18 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: fastapi-app
-  minReplicas: 2
-  maxReplicas: 10
+  minReplicas: 2    # 最小レプリカ数
+  maxReplicas: 10   # 最大レプリカ数
   metrics:
   - type: Resource
     resource:
       name: cpu
       target:
         type: Utilization
-        averageUtilization: 70
+        averageUtilization: 70  # CPU使用率70%で スケールアウト
   - type: Resource
     resource:
       name: memory
       target:
         type: Utilization
-        averageUtilization: 80
+        averageUtilization: 80  # メモリ使用率80%でスケールアウト
